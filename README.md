@@ -1,6 +1,6 @@
 # HenTrance
-An automatic, low-cost chicken coop door.
-![Robot pollo](images/Chicken.png)
+An automatic, low-cost chicken coop door.  
+<img src="images/Chicken.png" alt="Robot pollo" width="10%">
 # Features
 - Automatically opens at sunrise and closes at sunset using both a real-time clock and an LDR light sensor for accurate control.
 - Powered by an **STM32 BluePill** microcontroller — a great choice for low-budget builds.
