@@ -7,3 +7,8 @@ An automatic, low-cost chicken coop door.
 - Ultra-low power consumption thanks to deep sleep mode on the MCU.
 - Solar-powered with intelligent voltage regulation.
 - Motor overload protection (don’t worry — no hens will be harmed!).
+
+# Electronics
+Components:
+- component 1:
+- component 2:
