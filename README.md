@@ -12,3 +12,6 @@ An automatic, low-cost chicken coop door.
 Components:
 - component 1:
 - component 2:
+
+# 3D Printed parts
+Can be downloaded here: 
