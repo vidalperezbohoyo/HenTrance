@@ -2,75 +2,32 @@
 #include <SoftwareSerial.h>
 #include <STM32RTC.h>
 #include "STM32LowPower.h"
-#include <L298NX2.h>
 
-// Proyect includes
+// Project includes
 #include "Configuration.hpp"
 #include "Pins.hpp"
+#include "Controller.hpp"
+#include "Door.hpp"
+
 
 STM32RTC& rtc = STM32RTC::getInstance();
 SoftwareSerial sw_serial(PB6, PB7); // RX, TX
 
-L298NX2 motors(PIN_IN1_MOTORS, PIN_IN2_MOTORS, PIN_IN3_MOTORS, PIN_IN4_MOTORS);
-
 Controller controller;
 Door door;
 
-bool door_open = true;
-
-
-volatile bool manual_button_up_pressed = false;
-volatile bool manual_button_down_pressed = false;
-
-
 void setup() 
 {
-  // Setup pins
-  pinMode(PIN_UP_MANUAL_BTN, INPUT_PULLUP);
-  pinMode(PIN_DOWN_MANUAL_BTN, INPUT_PULLUP);
+  controller.init();
 
   pinMode(PIN_ENDSTOP_GOING_UP_RIGHT, INPUT_PULLUP);
   pinMode(PIN_ENDSTOP_GOING_UP_LEFT, INPUT_PULLUP);
   pinMode(PIN_ENDSTOP_GOING_DOWN_RIGHT, INPUT_PULLUP);
   pinMode(PIN_ENDSTOP_GOING_DOWN_LEFT, INPUT_PULLUP);
 
-  LowPower.attachInterruptWakeup(PIN_UP_MANUAL_BTN, ISR_onManualUpButtonPressed, FALLING, SLEEP_MODE);
-  LowPower.attachInterruptWakeup(PIN_DOWN_MANUAL_BTN, ISR_onManualDownButtonPressed, FALLING, SLEEP_MODE);
-
   sw_serial.begin(9600);
   delay(5000);
   setTime(); // Set time as compilation time
-  //while(1) testPins();
-  testLDR();
-}
-
-void testPins()
-{
-  int manual_up = digitalRead(PIN_UP_MANUAL_BTN);
-  int manual_down = digitalRead(PIN_DOWN_MANUAL_BTN);
-  int endstop_up_right = digitalRead(PIN_ENDSTOP_GOING_UP_RIGHT);
-  int endstop_up_left = digitalRead(PIN_ENDSTOP_GOING_UP_LEFT);
-  int endstop_down_right = digitalRead(PIN_ENDSTOP_GOING_DOWN_RIGHT);
-  int endstop_down_left = digitalRead(PIN_ENDSTOP_GOING_DOWN_LEFT);
-
-
-  sw_serial.print("UP: "); sw_serial.print(manual_up); sw_serial.print(" ");
-  sw_serial.print("DOWN: "); sw_serial.print(manual_down); sw_serial.print(" ");
-  sw_serial.print("ENDSTOP UP RIGHT: "); sw_serial.print(endstop_up_right); sw_serial.print(" ");
-  sw_serial.print("ENDSTOP UP LEFT: "); sw_serial.print(endstop_up_left); sw_serial.print(" ");
-  sw_serial.print("ENDSTOP DOWN RIGHT: "); sw_serial.print(endstop_down_right); sw_serial.print(" ");
-  sw_serial.print("ENDSTOP DOWN LEFT: "); sw_serial.print(endstop_down_left); sw_serial.print(" ");
-  sw_serial.println("");
-
-}
-
-void testLDR()
-{
-  while(true)
-  {
-    uint32_t brightness = getBrightness();
-    sw_serial.println(brightness);
-  }
 }
 
 void loop()
@@ -84,13 +41,13 @@ void loop()
   sw_serial.printf("%02d:%02d:%02d.%03d", rtc.getHours(), rtc.getMinutes(), rtc.getSeconds(), rtc.getSubSeconds()); sw_serial.print("]");
 
   // Check if something has been pressed
-  Key k = controller.get();
-  if (k == Controller::Key::UP)
+  Controller::Key k = controller.get();
+  if (k == Controller::Key::Up)
   {
     sw_serial.println("Pressed: Controller::Key::UP");
     door.open();
   }
-  else if (k == Controller::Key::DOWN)
+  else if (k == Controller::Key::Down)
   {
     sw_serial.println("Pressed: Controller::Key::DOWN");  
     door.close();
@@ -100,7 +57,7 @@ void loop()
     // Timeout deep sleep logic
     sw_serial.println("Deep sleep timeout reached");
 
-    uint32_t brightness = getBrightness();
+    uint32_t brightness = analogRead(LDR_PIN);
 
     bool can_open = rtc.getHours() >= MIN_OPEN_HOUR && rtc.getHours() >= MAX_OPEN_HOUR;
     bool can_close = rtc.getHours() >= MIN_CLOSE_HOUR && rtc.getHours() >= MAX_CLOSE_HOUR;
@@ -156,71 +113,6 @@ void loop()
   LowPower.deepSleep(DEEP_SLEEP_TIME);
 }
 
-uint32_t getBrightness()
-{
-  analogRead(LDR_PIN); // Pull the brightness
-  delay(200);
-  return analogRead(LDR_PIN); // Clear brightness reading
-}
-
-void close()
-{
-  sw_serial.println("Closing door...");
-  motors.backward();
-
-  bool done = false;
-  do
-  {
-    
-    bool left_pressed = (digitalRead(PIN_ENDSTOP_GOING_DOWN_LEFT) == LOW);
-    bool right_pressed = (digitalRead(PIN_ENDSTOP_GOING_DOWN_RIGHT) == LOW);
-
-    if (left_pressed)
-    {
-      motors.stopA();
-    }
-    if (right_pressed)
-    {
-      motors.stopB();
-    }
-
-    done = !motors.isMovingA() && !motors.isMovingB();
-  
-  } while (!done);
-
-  sw_serial.println("Door closed!");
-
-  door_open = false;
-}
-
-void open()
-{
-  sw_serial.println("Opening door...");
-  motors.forward();
-  
-  bool done = false;
-  do 
-  {  
-    bool left_pressed = (digitalRead(PIN_ENDSTOP_GOING_UP_LEFT) == LOW);
-    bool right_pressed = (digitalRead(PIN_ENDSTOP_GOING_UP_RIGHT) == LOW);
-
-    if (left_pressed)
-    {
-      motors.stopA();
-    }
-    if (right_pressed)
-    {
-      motors.stopB();
-    }
-
-    done = !motors.isMovingA() && !motors.isMovingB();
-  
-  } while (!done);
-  sw_serial.println("Door open!");
-  
-  door_open = true;
-}
-
 void setTime()
 {
   const char* compile_date = __DATE__; // "Sep 26 2025"
@@ -256,37 +148,5 @@ void setTime()
   rtc.setSeconds(second);
   rtc.setSubSeconds(0);
 }
-
-void ISR_onManualUpButtonPressed()
-{
-  manual_button_up_pressed = true;
-}
-
-void ISR_onManualDownButtonPressed()
-{
-  manual_button_down_pressed = true;
-}
-
-
-// Pins definition
-
-// Constants
-
-// Library objects
-
-// Global variables
-
-// ISR_ButtonUp()
-// ISR_ButtonDown()
-
-// isPressed(pin)
-
-// getBrightness()
-
-// isAM()
-
-// openDoor() / closeDoor()
-
-// deepSleep()
 
 

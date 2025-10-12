@@ -1,27 +1,35 @@
+
 #pragma once
+#include <LowPower.h>
+#include "Arduino.h"
+#include "Pins.hpp"
 
-class Controller
-{
-    enum class Key
-    {
-        NONE = 0,
-        UP = PIN_UP_MANUAL_BTN,
-        DOWN = PIN_DOWN_MANUAL_BTN
-    }
+class Controller {
+public:
+    enum class Key {
+        None = 0,
+        Up,
+        Down
+    };
 
+    Controller();
 
-    static Key get();
-
+    /**
+     * @brief Returns the last pressed key and clears it.
+     */
+    Key get();
 
 private:
-
+    /**
+     * @brief ISR for UP button.
+     */
     static void ISR_BUTTON_UP();
 
+    /**
+     * @brief ISR for DOWN button.
+     */
     static void ISR_BUTTON_DOWN();
 
-
-
+private:
     static Key key_;
-
-
 };
