@@ -1,8 +1,8 @@
 
 #pragma once
-#include <LowPower.h>
 #include "Arduino.h"
 #include "Pins.hpp"
+#include "STM32LowPower.h"
 
 class Controller {
 public:
@@ -18,6 +18,10 @@ public:
      * @brief Returns the last pressed key and clears it.
      */
     Key get();
+
+    Key read();
+
+    void init();
 
 private:
     /**

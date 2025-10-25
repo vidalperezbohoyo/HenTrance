@@ -1,10 +1,10 @@
 #pragma
 
-
 #pragma once
 #include <L298NX2.h>
 
-class Door {
+class Door 
+{
 public:
     Door();
 
@@ -29,6 +29,6 @@ public:
     bool isClose() const;
 
 private:
-    L298NX2& motors_controller_;
+    L298NX2 motors_controller_;
     bool open_ = false;
 };

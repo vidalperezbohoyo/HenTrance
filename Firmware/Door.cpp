@@ -5,7 +5,8 @@
 Door::Door() : motors_controller_(PIN_IN1_MOTORS, PIN_IN2_MOTORS, PIN_IN3_MOTORS, PIN_IN4_MOTORS), open_(false) {}
 
 
-bool Door::open() {
+bool Door::open() 
+{
     if (open_) return true; // Already open
     // Logic to open the door
     motors_controller_.forward();
@@ -19,7 +20,8 @@ bool Door::open() {
 }
 
 
-bool Door::close() {
+bool Door::close()
+{
     if (!open_) return true; // Already closed
     // Logic to close the door
     motors_controller_.backward();
@@ -32,10 +34,12 @@ bool Door::close() {
     return true;
 }
 
-bool Door::isOpen() const {
+bool Door::isOpen() const 
+{
     return open_;
 }
 
-bool Door::isClose() const {
+bool Door::isClose() const
+{
     return !open_;
 }

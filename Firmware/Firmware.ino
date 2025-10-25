@@ -28,6 +28,59 @@ void setup()
   sw_serial.begin(9600);
   delay(5000);
   setTime(); // Set time as compilation time
+
+  pinMode(PC13, OUTPUT);
+  digitalWrite(PC13, LOW);
+
+  /////////////////////////////////////////////
+  L298NX2 motors_controller(PIN_IN1_MOTORS, PIN_IN2_MOTORS, PIN_IN3_MOTORS, PIN_IN4_MOTORS);
+  pinMode(A2, INPUT);
+  
+
+  std::vector<uint32_t> readings;
+
+  bool can_pull = true;
+
+  while (true)
+  {
+    Controller::Key k = controller.read();
+    if (k == Controller::Key::Up && can_pull)
+    {
+      motors_controller.forward();
+    }
+    else if (k == Controller::Key::Down)
+    {
+      can_pull = true;
+      motors_controller.backward();
+    }
+    else 
+    {
+      motors_controller.stop();
+    }
+
+    readings.insert(readings.begin(), analogRead(A2));
+    if (readings.size() > 10)
+    {  
+      readings.pop_back();
+    }
+
+    unsigned long long int sum = 0;
+    for (auto& reading : readings)
+    {
+      sum += reading;
+    }
+
+    unsigned long long int value = sum / readings.size();
+
+    if (value > 100)
+    {
+      sw_serial.println("STALL");
+      can_pull = false;
+    }
+
+    sw_serial.println(value);
+    delay(100);
+  }
 }
 
 void loop()
@@ -70,7 +123,7 @@ void loop()
       {
         if (door.isClose())
         {
-          sw_serial.println("Ready to open the door with brightness (%d)", brightness);
+          sw_serial.print("Ready to open the door with brightness "); sw_serial.println(brightness);
           door.open();
         }
         else
@@ -80,7 +133,7 @@ void loop()
       }
       else
       {
-        sw_serial.println("The current brightness (%d) is not enough to open the door", brightness);
+        sw_serial.print("The current brightness "); sw_serial.print(brightness); sw_serial.println(" is not enough to open the door");
       } 
     }
     else if (can_close)
@@ -90,7 +143,7 @@ void loop()
       {
         if (door.isOpen())
         {
-          sw_serial.println("Ready to close the door with brightness (%d)", brightness);
+          sw_serial.print("Ready to close the door with brightness "); sw_serial.println(brightness); 
           door.close();
         }
         else
@@ -100,7 +153,7 @@ void loop()
       }
       else
       {
-        sw_serial.println("The current brightness (%d) is not too low to close the door", brightness);
+        sw_serial.print("The current brightness "); sw_serial.print(brightness); sw_serial.println("is not too low to close the door");
       } 
     }
     else
